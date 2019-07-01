@@ -25,4 +25,53 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
 
-apply from: 'upload.gradle'
+apply plugin: 'maven'
+
+def MAVEN_URL = "http://10.50.132.191:8081/repository/maven-public/"
+def MAVEN_UPLOAD_URL = "http://10.50.132.191:8081/repository/android-repositories/"
+def MAVEN_USER = "xxx"
+def MAVEN_PWD = "xxx"
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "${MAVEN_UPLOAD_URL}") {
+                authentication(userName: "${MAVEN_USER}", password: "${MAVEN_PWD}")
+            }
+
+            pom.groupId = "demo"
+            pom.artifactId = "demo"
+            pom.version = android.defaultConfig.versionName
+            pom.packaging = "aar"
+        }
+    }
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    destinationDir = file("../javadoc/")
+    failOnError false
+}
+
+task generateSourcesJar(type: Jar) {
+    group = 'jar'
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaAndroidTask) {
+    outputFormat = "javadoc"
+    outputDirectory = "dir"
+}
+
+task generateJavadoc(type: Jar, dependsOn: dokkaJavadoc) {
+    group = 'jar'
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives generateJavadoc
+    archives generateSourcesJar
+}
